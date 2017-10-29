@@ -1377,6 +1377,9 @@ creates incorrect values for columns containing categorical features.
 
 **Note** all `null` values in the input columns are treated as missing, and so are also imputed.
 
+Imputer can impute custom values other than 'NaN' by `.setMissingValue(custom_value)`. For example, `.setMissingValue(0)`
+will impute all occurrences of (0).
+
 **Examples**
 
 Suppose that we have a DataFrame with the columns `a` and `b`:
