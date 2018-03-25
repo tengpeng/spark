@@ -68,6 +68,17 @@ private[fpm] trait FPGrowthParams extends Params with HasPredictionCol {
   @Since("2.2.0")
   def getMinSupport: Double = $(minSupport)
 
+  /** @group getParam */
+  @Since("2.4.0")
+  val maxSupport: DoubleParam = new DoubleParam(this, "maxSupport",
+    "If a frequent item of support > maxSupport, then filter it out",
+    ParamValidators.inRange(0.0, 1.0))
+  setDefault(maxSupport -> 1.0)
+
+  /** @group getParam */
+  @Since("2.4.0")
+  def getMaxSupport: Double = $(maxSupport)
+
   /**
    * Number of partitions (at least 1) used by parallel FP-growth. By default the param is not
    * set, and partition number of the input dataset is used.
@@ -136,6 +147,10 @@ class FPGrowth @Since("2.2.0") (
   @Since("2.2.0")
   def setMinSupport(value: Double): this.type = set(minSupport, value)
 
+  /** @group getParam */
+  @Since("2.4.0")
+  def setMaxSupport(value: Double): this.type = set(maxSupport, value)
+
   /** @group expertSetParam */
   @Since("2.2.0")
   def setNumPartitions(value: Int): this.type = set(numPartitions, value)
@@ -163,6 +178,7 @@ class FPGrowth @Since("2.2.0") (
 
     val data = dataset.select($(itemsCol))
     val items = data.where(col($(itemsCol)).isNotNull).rdd.map(r => r.getSeq[Any](0).toArray)
+    val count = data.count()
     val mllibFP = new MLlibFPGrowth().setMinSupport($(minSupport))
     if (isSet(numPartitions)) {
       mllibFP.setNumPartitions($(numPartitions))
@@ -173,7 +189,9 @@ class FPGrowth @Since("2.2.0") (
     }
 
     val parentModel = mllibFP.run(items)
-    val rows = parentModel.freqItemsets.map(f => Row(f.items, f.freq))
+    val rows = parentModel.freqItemsets
+      .filter(_.freq <= ($(maxSupport)*count).toLong)
+      .map(f => Row(f.items, f.freq))
     val schema = StructType(Seq(
       StructField("items", dataset.schema($(itemsCol)).dataType, nullable = false),
       StructField("freq", LongType, nullable = false)))

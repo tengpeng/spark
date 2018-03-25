@@ -75,6 +75,19 @@ class FPGrowthSuite extends SparkFunSuite with MLlibTestSparkContext with Defaul
     assert(checkDF.count() == 3 && checkDF.filter(col("freq") === col("expectedFreq")).count() == 3)
   }
 
+  test("FPGrowth maxSupport") {
+    val model = new FPGrowth().setMinSupport(0.7).setMaxSupport(0.9).fit(dataset)
+    val expectedFreq = spark.createDataFrame(Seq(
+      (Array("2"), 3L),
+      (Array("1", "2"), 3L),
+      (Array("2", "1"), 3L) // duplicate as the items sequence is not guaranteed
+    )).toDF("items", "expectedFreq")
+    val freqItems = model.freqItemsets
+
+    val checkDF = freqItems.join(expectedFreq, "items")
+    assert(checkDF.count() == 2 && checkDF.filter(col("freq") === col("expectedFreq")).count() == 2)
+  }
+
   test("FPGrowth getFreqItems with Null") {
     val df = spark.createDataFrame(Seq(
       (1, Array("1", "2", "3", "5")),
