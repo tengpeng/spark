@@ -747,6 +747,16 @@ private[spark] object Utils extends Logging {
     }
   }
 
+  @throws[MalformedURLException]("when the URI is an invalid URL")
+  def getLocalURL(path: String): String = {
+    val validLocalURL = "(local):///(.*)\\.([/a-z]+)".r
+    val localURL = path match {
+      case validLocalURL(localPath, _*) => localPath
+      case _ => new MalformedURLException(s"URI (${path.toString}) is not a valid URL.")
+    }
+    localURL.toString
+  }
+
   /**
    * Get the path of a temporary directory.  Spark's local directories can be configured through
    * multiple settings, which are used with the following precedence:

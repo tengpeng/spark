@@ -17,7 +17,7 @@
 
 package org.apache.spark
 
-import java.io.File
+import java.io.{File,IOException}
 import java.net.{MalformedURLException, URI}
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.{CountDownLatch, Semaphore, TimeUnit}
@@ -626,6 +626,15 @@ class SparkContextSuite extends SparkFunSuite with LocalSparkContext with Eventu
     assert(exc != null)
     assert(exc.getCause() != null)
     stream.close()
+  }
+
+  test("SPARK-24195: sc.addFile for local:/ path is broken") {
+    sc = new SparkContext(new SparkConf().setAppName("test").setMaster("local"))
+    val inputPath = "local:///home/user/demo/logger.config"
+    val e1 = intercept[IOException] {
+      sc.addFile(inputPath, false)
+    }
+    assert(e1.getMessage.contains("File local does not exist"))
   }
 }
 

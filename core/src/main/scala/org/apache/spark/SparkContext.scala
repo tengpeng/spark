@@ -1518,9 +1518,15 @@ class SparkContext(config: SparkConf) extends Logging {
    */
   def addFile(path: String, recursive: Boolean): Unit = {
     val uri = new Path(path).toUri
-    val schemeCorrectedPath = uri.getScheme match {
-      case null | "local" => new File(path).getCanonicalFile.toURI.toString
-      case _ => path
+    val schemeCorrectedPath = if (path contains "local") {
+      Utils.getLocalURL(path)
+    }
+    else {
+      val schemeCorrectedPath = uri.getScheme match {
+        case null => new File(path).getCanonicalFile.toURI.toString
+        case _ => path
+      }
+      schemeCorrectedPath
     }
 
     val hadoopPath = new Path(schemeCorrectedPath)
